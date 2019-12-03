@@ -1,0 +1,15 @@
+.*
+
+!.gitignore
+
+*.jar
+*.dll
+
+!gradle-wrapper.jar
+
+build/
+bin/
+lib/
+out/
+
+*.iml
