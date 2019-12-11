@@ -5,20 +5,24 @@ import java.util.LinkedList
 import java.util.concurrent.BlockingQueue
 import java.util.concurrent.LinkedBlockingDeque
 import java.util.concurrent.LinkedBlockingQueue
+import scala.collection.mutable.ArrayBuffer
+import scala.math.BigInt
 
 class IntCodeComputer(
-        val program: Array[Int],
-        val input: BlockingQueue[Int] = new LinkedBlockingQueue[Int],
-        val output: BlockingQueue[Int] = new LinkedBlockingQueue[Int],
+        private val programIn: Array[BigInt],
+        val input: BlockingQueue[BigInt] = new LinkedBlockingQueue[BigInt],
+        val output: BlockingQueue[BigInt] = new LinkedBlockingQueue[BigInt],
     ) {
 
-    private var programCounter = 0
+    val program : ArrayBuffer[BigInt] = ArrayBuffer(programIn: _*)
+    private var programCounter: BigInt = 0
+    private var relativeBase: BigInt = 0
 
     def run() = {
 
-        while (program(programCounter) != 99) {
+        while (prog(programCounter) != 99) {
 
-            val instruction = "%05d".format(program(programCounter))
+            val instruction = "%05d".format(prog(programCounter))
 
             val opcode = instruction.substring(3, 5).toInt
             val param3mode = Integer.parseInt(instruction(0).toString())
@@ -27,48 +31,54 @@ class IntCodeComputer(
 
             opcode match {
                 case 1 => {
-                    val param1 = param(program, programCounter, param1mode, 1)
-                    val param2 = param(program, programCounter, param2mode, 2)
-                    program(program(programCounter + 3)) = param1 + param2
+                    val param1 = param(param1mode, 1)
+                    val param2 = param(param2mode, 2)
+                    set(param3mode, 3, param1 + param2)
                     programCounter += 4
                 }
                 case 2 => {
-                    val param1 = param(program, programCounter, param1mode, 1)
-                    val param2 = param(program, programCounter, param2mode, 2)
-                    program(program(programCounter + 3)) = param1 * param2
+                    val param1 = param(param1mode, 1)
+                    val param2 = param(param2mode, 2)
+                    set(param3mode, 3, param1 * param2)
                     programCounter += 4
                 }
                 case 3 => {
-                    program(program(programCounter + 1)) = input.take()
+                    set(param1mode, 1, input.take())
                     programCounter += 2
                 }
                 case 4 => {
-                    output.put(param(program, programCounter, param1mode, 1))
+                    output.put(param(param1mode, 1))
                     programCounter += 2
                 }
                 case 5 => {
                     programCounter =
-                        if (param(program, programCounter, param1mode, 1) != 0)
-                            param(program, programCounter, param2mode, 2)
+                        if (param(param1mode, 1) != 0)
+                            param(param2mode, 2)
                         else programCounter + 3
                 }
                 case 6 => {
                     programCounter =
-                        if (param(program, programCounter, param1mode, 1) == 0)
-                            param(program, programCounter, param2mode, 2)
+                        if (param(param1mode, 1) == 0)
+                            param(param2mode, 2)
                         else programCounter + 3
                 }
                 case 7 => {
-                    program(program(programCounter + 3)) =
-                        if (param(program, programCounter, param1mode, 1) < param(program, programCounter, param2mode, 2)) 1
+                    set(param3mode, 3,
+                        if (param(param1mode, 1) < param(param2mode, 2)) 1
                         else 0
+                    )
                     programCounter += 4
                 }
                 case 8 => {
-                    program(program(programCounter + 3)) =
-                        if (param(program, programCounter, param1mode, 1) == param(program, programCounter, param2mode, 2)) 1
+                    set(param3mode, 3,
+                        if (param(param1mode, 1) == param(param2mode, 2)) 1
                         else 0
+                    )
                     programCounter += 4
+                }
+                case 9 => {
+                    relativeBase += param(param1mode, 1)
+                    programCounter += 2
                 }
             }
         }
@@ -81,8 +91,29 @@ class IntCodeComputer(
         thread
     }
 
-    private def param(program: Array[Int], position: Int, mode: Int, param: Int): Int = {
-        if (mode == 1) program(position + param) else program(program(position + param))
+    private def param(mode: Int, param: BigInt): BigInt = {
+        if (mode == 0) prog(prog(programCounter + param))
+        else if (mode == 1) prog(programCounter + param)
+        else if (mode == 2) prog(relativeBase + prog(programCounter + param))
+        else -1
+    }
+
+    private def set(mode: Int, param: BigInt, value: BigInt) = {
+        val idx: BigInt = if (mode == 0) prog(programCounter + param)
+            else if (mode == 1) programCounter + param
+            else if (mode == 2) relativeBase + prog(programCounter + param)
+            else -1
+        while (idx >= program.size) {
+            program += 0
+        }
+        program(idx.toInt) = value
+    }
+
+    private def prog(idx: BigInt): BigInt = {
+        while (idx >= program.size) {
+            program += 0
+        }
+        program(idx.toInt)
     }
 
 }

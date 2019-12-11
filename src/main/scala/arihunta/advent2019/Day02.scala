@@ -7,17 +7,17 @@ import java.util.LinkedList
 object Day02 {
 
     def _01(): Int = {
-        val program = Source.fromResource("02").mkString.split(",").map(it => it.toInt)
+        val program = Source.fromResource("02").mkString.split(",").map(it => BigInt(it))
         program(1) = 12
         program(2) = 2
         val computer = new IntCodeComputer(program)
         computer.run()
-        computer.program(0)
+        computer.program(0).toInt
     }
 
     def _02(): Int = {
 
-        val initialProgram = Source.fromResource("02").mkString.split(",").map(it => it.toInt)
+        val initialProgram = Source.fromResource("02").mkString.split(",").map(it => BigInt(it))
 
         for (i <- 0 to 99) {
             for (j <- 0 to 99) {
