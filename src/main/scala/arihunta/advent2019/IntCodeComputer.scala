@@ -7,16 +7,21 @@ import java.util.concurrent.LinkedBlockingDeque
 import java.util.concurrent.LinkedBlockingQueue
 import scala.collection.mutable.ArrayBuffer
 import scala.math.BigInt
+import org.apache.logging.log4j.LogManager
 
 class IntCodeComputer(
         private val programIn: Array[BigInt],
         val input: BlockingQueue[BigInt] = new LinkedBlockingQueue[BigInt],
         val output: BlockingQueue[BigInt] = new LinkedBlockingQueue[BigInt],
+        val debug: Boolean = false,
     ) {
+
+    val logger = LogManager.getLogger(classOf[IntCodeComputer]);
 
     val program : ArrayBuffer[BigInt] = ArrayBuffer(programIn: _*)
     private var programCounter: BigInt = 0
     private var relativeBase: BigInt = 0
+    private var finished: Boolean = false
 
     def run() = {
 
@@ -28,6 +33,8 @@ class IntCodeComputer(
             val param3mode = Integer.parseInt(instruction(0).toString())
             val param2mode = Integer.parseInt(instruction(1).toString())
             val param1mode = Integer.parseInt(instruction(2).toString())
+
+            if (debug) logger.debug("OPCODE: " + opcode)
 
             opcode match {
                 case 1 => {
@@ -43,11 +50,15 @@ class IntCodeComputer(
                     programCounter += 4
                 }
                 case 3 => {
-                    set(param1mode, 1, input.take())
+                    val inVal = input.take()
+                    if (debug) logger.debug("input: " + inVal)
+                    set(param1mode, 1, inVal)
                     programCounter += 2
                 }
                 case 4 => {
-                    output.put(param(param1mode, 1))
+                    val outVal = param(param1mode, 1)
+                    if (debug) logger.debug("output: " + outVal)
+                    output.put(outVal)
                     programCounter += 2
                 }
                 case 5 => {
@@ -83,6 +94,10 @@ class IntCodeComputer(
             }
         }
 
+        if (debug) logger.debug("Exiting: " + prog(programCounter))
+
+        finished = true
+
     }
 
     def runOnThread(): Thread = {
@@ -90,6 +105,8 @@ class IntCodeComputer(
         thread.start()
         thread
     }
+
+    def isFinished(): Boolean = finished
 
     private def param(mode: Int, param: BigInt): BigInt = {
         if (mode == 0) prog(prog(programCounter + param))
@@ -99,10 +116,11 @@ class IntCodeComputer(
     }
 
     private def set(mode: Int, param: BigInt, value: BigInt) = {
-        val idx: BigInt = if (mode == 0) prog(programCounter + param)
+        val idx: BigInt =
+            if (mode == 0) prog(programCounter + param)
             else if (mode == 1) programCounter + param
             else if (mode == 2) relativeBase + prog(programCounter + param)
-            else -1
+            else throw new IllegalStateException("Invalid parameter mode")
         while (idx >= program.size) {
             program += 0
         }
