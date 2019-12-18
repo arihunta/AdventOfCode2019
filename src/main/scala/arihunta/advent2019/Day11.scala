@@ -5,12 +5,9 @@ import java.util.concurrent.BlockingQueue
 import java.util.concurrent.LinkedBlockingQueue
 import java.util.Set
 import java.util.HashSet
-import org.apache.logging.log4j.LogManager
 import java.util.concurrent.TimeUnit
 
 object Day11 {
-
-    val logger = LogManager.getLogger(Day11.getClass);
 
     val headings = Array((0, 1), (1, 0), (0, -1), (-1, 0))
 
