@@ -1,6 +1,7 @@
 package arihunta.advent2019
 
 import org.scalatest.FunSuite
+import org.scalactic.source.Position.apply
 
 class Day19Test extends FunSuite {
 
